@@ -1,0 +1,16 @@
+apiVersion: "v1"
+kind: "Service"
+metadata:
+  name: "bean-and-bloom-svc"
+  namespace: "bean-and-bloom"
+  labels:
+    app: "bean-and-bloom"
+spec:
+  type: "ClusterIP"
+  selector:
+    app: "bean-and-bloom"
+  ports:
+    - name: "http"
+      protocol: "TCP"
+      port: 5000
+      targetPort: 5000

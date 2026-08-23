@@ -1,0 +1,29 @@
+apiVersion: "networking.k8s.io/v1"
+kind: "Ingress"
+metadata:
+  name: "bean-and-bloom-ingress"
+  namespace: "bean-and-bloom"
+  annotations:
+    kubernetes.io/ingress.class: "alb"
+    alb.ingress.kubernetes.io/scheme: "internet-facing"
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: "443"
+    # Replace with your ACM certificate ARN(s), comma separated if more than one.
+    alb.ingress.kubernetes.io/certificate-arn: "arn:aws:acm:us-west-2:794934876309:certificate/REPLACE_WITH_YOUR_CERT_ID"
+    alb.ingress.kubernetes.io/healthcheck-path: "/api/health"
+    alb.ingress.kubernetes.io/healthcheck-port: "traffic-port"
+    alb.ingress.kubernetes.io/backend-protocol: "HTTP"
+spec:
+  ingressClassName: "alb"
+  rules:
+    - host: "beanandbloom.example.com"
+      http:
+        paths:
+          - path: "/"
+            pathType: "Prefix"
+            backend:
+              service:
+                name: "bean-and-bloom-svc"
+                port:
+                  number: 5000

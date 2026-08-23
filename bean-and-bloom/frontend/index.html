@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Bean & Bloom | Coffee, Drinks &amp; Snacks</title>
+<meta name="description" content="Bean & Bloom - specialty coffee, soft drinks and snacks." />
+
+<!--
+  React + ReactDOM + Babel standalone, served from THIS server (vendor/ folder), not a CDN.
+  They're downloaded once at `docker build` time (see Dockerfile) and baked into the image,
+  so the running container/server needs zero outbound internet access to render the page.
+  Babel standalone still lets the browser compile JSX at runtime - no npm build step needed.
+-->
+<script src="/vendor/react.production.min.js" crossorigin></script>
+<script src="/vendor/react-dom.production.min.js" crossorigin></script>
+<script src="/vendor/babel.min.js" crossorigin></script>
+
+<style>
+  :root {
+    --coffee-dark: #2b1c14;
+    --coffee: #6f4831;
+    --coffee-light: #a9754f;
+    --cream: #fbf3ea;
+    --bloom-green: #3f7d4f;
+    --bloom-green-dark: #2e5e3a;
+    --accent-orange: #d97b3f;
+    --text: #2c211b;
+    --muted: #7a695f;
+    --danger: #b23b3b;
+    --radius: 14px;
+    --shadow: 0 8px 24px rgba(43, 28, 20, 0.12);
+  }
+  * { box-sizing: border-box; }
+  html, body, #root { height: 100%; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--cream);
+    color: var(--text);
+  }
+  img { max-width: 100%; display: block; }
+  a { text-decoration: none; color: inherit; }
+  button { font-family: inherit; cursor: pointer; }
+
+  /* ---------- Navbar ---------- */
+  .navbar {
+    position: sticky; top: 0; z-index: 50;
+    background: var(--coffee-dark);
+    color: #fff;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 28px;
+    box-shadow: var(--shadow);
+  }
+  .brand { display: flex; align-items: center; gap: 10px; font-size: 22px; font-weight: 700; }
+  .brand-mark {
+    width: 34px; height: 34px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--coffee-light), var(--bloom-green));
+    display: flex; align-items: center; justify-content: center; font-size: 18px;
+  }
+  .nav-links { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; }
+  .nav-links a, .nav-links button.linklike {
+    background: none; border: none; color: #f1e6da; font-size: 15px; padding: 6px 4px;
+    border-bottom: 2px solid transparent;
+  }
+  .nav-links a:hover, .nav-links button.linklike:hover { border-bottom-color: var(--bloom-green); }
+  .nav-links a.active { border-bottom-color: var(--bloom-green); color: #fff; }
+  .cart-btn {
+    position: relative; background: var(--bloom-green); color: #fff; border: none;
+    padding: 9px 16px; border-radius: 999px; font-weight: 600; font-size: 14px;
+  }
+  .cart-btn:hover { background: var(--bloom-green-dark); }
+  .cart-badge {
+    position: absolute; top: -8px; right: -8px; background: var(--danger); color: #fff;
+    font-size: 11px; min-width: 20px; height: 20px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-weight: 700;
+  }
+  .hamburger { display: none; background: none; border: none; color: #fff; font-size: 22px; }
+
+  @media (max-width: 880px) {
+    .nav-links { display: none; }
+    .nav-links.open {
+      display: flex; flex-direction: column; position: absolute; top: 62px; left: 0; right: 0;
+      background: var(--coffee-dark); padding: 16px 24px; gap: 14px;
+    }
+    .hamburger { display: block; }
+  }
+
+  /* ---------- Hero (pure CSS/SVG - no external photos) ---------- */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(120deg, var(--coffee-dark), var(--bloom-green-dark));
+    color: #fff; padding: 90px 28px; text-align: left;
+  }
+  .hero-bg-pattern {
+    position: absolute; inset: 0; opacity: 0.16; pointer-events: none;
+  }
+  .hero-inner { position: relative; max-width: 640px; }
+  .hero-eyebrow { color: #c9e8cf; letter-spacing: 2px; font-size: 13px; font-weight: 700; text-transform: uppercase; }
+  .hero h1 { font-size: 46px; line-height: 1.15; margin: 14px 0; }
+  .hero h1 span { color: #a9e0b4; }
+  .hero p { font-size: 17px; color: #efe6dc; max-width: 480px; margin-bottom: 28px; }
+  .hero-ctas { display: flex; gap: 14px; flex-wrap: wrap; }
+  .btn-primary {
+    background: var(--bloom-green); color: #fff; border: none; padding: 14px 26px;
+    border-radius: 8px; font-weight: 700; font-size: 15px;
+  }
+  .btn-primary:hover { background: var(--bloom-green-dark); }
+  .btn-outline {
+    background: transparent; color: #fff; border: 2px solid #fff; padding: 12px 24px;
+    border-radius: 8px; font-weight: 700; font-size: 15px;
+  }
+  .btn-outline:hover { background: rgba(255,255,255,0.12); }
+
+  .perks { display: flex; gap: 34px; flex-wrap: wrap; padding: 32px 28px; background: #fff; justify-content: center; }
+  .perk { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 14px; max-width: 220px; }
+  .perk-icon { font-size: 22px; }
+
+  /* ---------- Section / Menu ---------- */
+  .section { padding: 48px 28px; max-width: 1180px; margin: 0 auto; }
+  .section-title { font-size: 28px; margin-bottom: 6px; }
+  .section-sub { color: var(--muted); margin-bottom: 26px; }
+
+  .tabs { display: flex; gap: 10px; margin-bottom: 26px; flex-wrap: wrap; }
+  .tab {
+    border: 2px solid var(--coffee); background: #fff; color: var(--coffee);
+    padding: 9px 20px; border-radius: 999px; font-weight: 600; font-size: 14px;
+  }
+  .tab.active { background: var(--coffee); color: #fff; }
+  .tab.green { border-color: var(--bloom-green); color: var(--bloom-green); }
+  .tab.green.active { background: var(--bloom-green); color: #fff; }
+  .tab.orange { border-color: var(--accent-orange); color: var(--accent-orange); }
+  .tab.orange.active { background: var(--accent-orange); color: #fff; }
+
+  .grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 22px;
+  }
+  .card {
+    background: #fff; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+    display: flex; flex-direction: column;
+  }
+  .card-body { padding: 16px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
+  .card-tag {
+    align-self: flex-start; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+    text-transform: uppercase; padding: 3px 9px; border-radius: 999px;
+  }
+  .card-tag.coffee { background: #f1e2d3; color: var(--coffee); }
+  .card-tag.drinks { background: #ffe9d6; color: var(--accent-orange); }
+  .card-tag.snacks { background: #dcf0e1; color: var(--bloom-green-dark); }
+  .card h3 { margin: 0; font-size: 17px; }
+  .card p.desc { color: var(--muted); font-size: 13.5px; margin: 0; flex: 1; }
+  .card-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+  .price { font-weight: 700; font-size: 16px; color: var(--coffee-dark); }
+  .qty-control { display: flex; align-items: center; gap: 8px; }
+  .qty-control button {
+    width: 26px; height: 26px; border-radius: 6px; border: 1px solid #ddd; background: #f6f1ea; font-weight: 700;
+  }
+  .add-btn {
+    background: var(--coffee); color: #fff; border: none; padding: 9px 14px; border-radius: 8px;
+    font-weight: 600; font-size: 13.5px; margin-top: 4px;
+  }
+  .add-btn:hover { background: var(--coffee-dark); }
+  .add-btn.added { background: var(--bloom-green); }
+
+  /* ---------- Product art (SVG shape + emoji, no external images) ---------- */
+  .product-art {
+    height: 170px; width: 100%; position: relative; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .product-art svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .product-art .glyph { position: relative; font-size: 56px; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.15)); }
+
+  /* ---------- Cart drawer ---------- */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 90;
+  }
+  .drawer {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 380px; max-width: 92vw;
+    background: #fff; z-index: 91; box-shadow: -8px 0 24px rgba(0,0,0,0.2);
+    display: flex; flex-direction: column;
+  }
+  .drawer-header {
+    padding: 18px 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;
+  }
+  .drawer-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
+  .drawer-item { display: flex; gap: 10px; padding: 12px 0; border-bottom: 1px solid #f2ede6; align-items: center; }
+  .drawer-item-art {
+    width: 56px; height: 56px; border-radius: 8px; flex-shrink: 0; position: relative;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .drawer-item-art svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .drawer-item-art .glyph { position: relative; font-size: 24px; }
+  .drawer-item-info { flex: 1; }
+  .drawer-item-info h4 { margin: 0 0 4px; font-size: 14px; }
+  .remove-link { color: var(--danger); font-size: 12px; background: none; border: none; padding: 0; }
+  .drawer-footer { padding: 16px 20px; border-top: 1px solid #eee; }
+  .drawer-total { display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 12px; font-size: 16px; }
+  .close-btn { background: none; border: none; font-size: 20px; color: var(--muted); }
+
+  /* ---------- Forms / auth / checkout ---------- */
+  .form-page {
+    max-width: 420px; margin: 60px auto; background: #fff; padding: 34px; border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+  .form-page h2 { margin-top: 0; }
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--muted); }
+  .field input {
+    width: 100%; padding: 11px 12px; border-radius: 8px; border: 1px solid #ddd; font-size: 14px;
+  }
+  .field input:focus { outline: 2px solid var(--bloom-green); border-color: var(--bloom-green); }
+  .full-btn { width: 100%; padding: 12px; border-radius: 8px; border: none; background: var(--bloom-green); color: #fff; font-weight: 700; font-size: 15px; }
+  .full-btn:hover { background: var(--bloom-green-dark); }
+  .full-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .error-msg { background: #fdecec; color: var(--danger); padding: 10px 12px; border-radius: 8px; font-size: 13.5px; margin-bottom: 14px; }
+  .success-msg { background: #e6f5ea; color: var(--bloom-green-dark); padding: 10px 12px; border-radius: 8px; font-size: 13.5px; margin-bottom: 14px; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
+
+  /* ---------- Admin ---------- */
+  .admin-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;}
+  table.orders { width: 100%; border-collapse: collapse; background: #fff; border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); }
+  table.orders th, table.orders td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #f0ece5; font-size: 14px; }
+  table.orders th { background: var(--coffee-dark); color: #fff; font-size: 12.5px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .status-pill { background: #dcf0e1; color: var(--bloom-green-dark); padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+  .logout-btn { background: #eee; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13.5px; }
+
+  /* ---------- 404 ---------- */
+  .not-found { text-align: center; padding: 100px 24px; }
+  .not-found .code { font-size: 96px; font-weight: 800; color: var(--coffee); line-height: 1; }
+  .not-found h2 { margin: 10px 0; }
+  .not-found p { color: var(--muted); margin-bottom: 26px; }
+
+  footer {
+    background: var(--coffee-dark); color: #cbb9a8; text-align: center; padding: 26px; font-size: 13px; margin-top: 40px;
+  }
+
+  .empty-state { text-align: center; padding: 40px 0; color: var(--muted); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useCallback } = React;
+
+/* ---------------------------------------------------------------------
+   Product art: a colored SVG shape (cup / glass / plate) + emoji glyph.
+   No photos, no external requests -- fully self-contained and guaranteed
+   to match the item, since the emoji IS the item.
+--------------------------------------------------------------------- */
+const TONE_COLORS = {
+  "coffee":        ["#6f4831", "#412c1e"],
+  "coffee-light":  ["#a9754f", "#6f4831"],
+  "caramel":       ["#c98a3f", "#8a5a24"],
+  "mocha":         ["#5b3a2a", "#2b1c14"],
+  "coldbrew":      ["#3a2a1f", "#1c130d"],
+  "cola":          ["#3a2418", "#1a0f0a"],
+  "lemon":         ["#e8d24a", "#c7ad2c"],
+  "orange":        ["#e8863c", "#c4661f"],
+  "tea":           ["#b9843f", "#8a5f26"],
+  "sparkling":     ["#7fb8d6", "#4a8aab"],
+  "pastry":        ["#e6c78a", "#c99a4e"],
+  "chocolate":     ["#6b4226", "#3d2414"],
+  "pretzel":       ["#a97646", "#7a5330"],
+  "chips":         ["#e0b23e", "#b8871f"],
+  "cookie":        ["#8a5a2e", "#5c3a1c"],
+};
+
+function ProductArt({ art, small }) {
+  const [c1, c2] = TONE_COLORS[art.tone] || ["#6f4831", "#412c1e"];
+  const gradId = "grad-" + art.tone;
+  const shape = art.shape;
+
+  return (
+    <div className={small ? "drawer-item-art" : "product-art"}>
+      <svg viewBox="0 0 200 170" preserveAspectRatio="xMidYMid slice">
+        <defs>
+          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={c1} />
+            <stop offset="100%" stopColor={c2} />
+          </linearGradient>
+        </defs>
+        <rect x="0" y="0" width="200" height="170" fill={`url(#${gradId})`} />
+        {shape === "cup" && (
+          <>
+            <path d="M55 60 h75 v55 a37.5 37.5 0 0 1 -75 0 z" fill="#ffffff" opacity="0.14" />
+            <path d="M130 70 h18 a16 16 0 0 1 0 32 h-14" fill="none" stroke="#ffffff" strokeOpacity="0.22" strokeWidth="6" />
+            <path d="M70 45 q6 -12 0 -20" fill="none" stroke="#ffffff" strokeOpacity="0.28" strokeWidth="4" strokeLinecap="round" />
+            <path d="M88 45 q6 -12 0 -20" fill="none" stroke="#ffffff" strokeOpacity="0.28" strokeWidth="4" strokeLinecap="round" />
+          </>
+        )}
+        {shape === "glass" && (
+          <>
+            <path d="M65 45 h70 l-8 90 a5 5 0 0 1 -5 5 h-44 a5 5 0 0 1 -5 -5 z" fill="#ffffff" opacity="0.14" />
+            <circle cx="95" cy="75" r="4" fill="#ffffff" opacity="0.3" />
+            <circle cx="115" cy="95" r="3" fill="#ffffff" opacity="0.3" />
+            <circle cx="100" cy="110" r="2.5" fill="#ffffff" opacity="0.3" />
+          </>
+        )}
+        {shape === "plate" && (
+          <ellipse cx="100" cy="120" rx="70" ry="16" fill="#ffffff" opacity="0.16" />
+        )}
+      </svg>
+      <span className="glyph">{art.icon}</span>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------
+   Simple hash-based router (no react-router dependency needed)
+--------------------------------------------------------------------- */
+function useHashRoute() {
+  const [route, setRoute] = useState(window.location.hash || "#/");
+  useEffect(() => {
+    const onChange = () => setRoute(window.location.hash || "#/");
+    window.addEventListener("hashchange", onChange);
+    return () => window.removeEventListener("hashchange", onChange);
+  }, []);
+  return route;
+}
+function navigate(path) { window.location.hash = path; }
+
+/* ---------------------------------------------------------------------
+   API helper
+--------------------------------------------------------------------- */
+const API_BASE = "/api";
+async function apiFetch(path, options = {}) {
+  const res = await fetch(API_BASE + path, {
+    ...options,
+    headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data.error || `Request failed (${res.status})`);
+  }
+  return data;
+}
+
+/* ---------------------------------------------------------------------
+   Navbar
+--------------------------------------------------------------------- */
+function Navbar({ route, cartCount, onOpenCart, isAdmin, onLogout }) {
+  const [open, setOpen] = useState(false);
+  const isActive = (path) => (route === path ? "active" : "");
+
+  return (
+    <div className="navbar">
+      <a href="#/" className="brand" onClick={() => setOpen(false)}>
+        <span className="brand-mark">🌱</span> Bean &amp; Bloom
+      </a>
+      <button className="hamburger" onClick={() => setOpen(!open)} aria-label="Toggle menu">☰</button>
+      <div className={"nav-links" + (open ? " open" : "")}>
+        <a href="#/" className={isActive("#/")} onClick={() => setOpen(false)}>Home</a>
+        <a href="#/menu" className={isActive("#/menu")} onClick={() => setOpen(false)}>Menu</a>
+        <a href="#/menu?category=drinks" className="" onClick={() => setOpen(false)}>Drinks</a>
+        <a href="#/menu?category=snacks" className="" onClick={() => setOpen(false)}>Snacks</a>
+        <a href="#/about" className={isActive("#/about")} onClick={() => setOpen(false)}>About</a>
+        <a href="#/contact" className={isActive("#/contact")} onClick={() => setOpen(false)}>Contact</a>
+        {isAdmin ? (
+          <>
+            <a href="#/admin" className={isActive("#/admin")} onClick={() => setOpen(false)}>Admin Dashboard</a>
+            <button className="linklike" onClick={() => { onLogout(); setOpen(false); }}>Logout</button>
+          </>
+        ) : (
+          <a href="#/login" className={isActive("#/login")} onClick={() => setOpen(false)}>Admin Login</a>
+        )}
+        <button className="cart-btn" onClick={onOpenCart}>
+          🛒 Cart
+          {cartCount > 0 && <span className="cart-badge">{cartCount}</span>}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------
+   Hero / Home page
+--------------------------------------------------------------------- */
+function Home() {
+  return (
+    <>
+      <div className="hero">
+        <svg className="hero-bg-pattern" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
+          <circle cx="40" cy="40" r="18" fill="#fff" />
+          <circle cx="100" cy="150" r="26" fill="#fff" />
+          <circle cx="340" cy="60" r="22" fill="#fff" />
+          <circle cx="260" cy="20" r="12" fill="#fff" />
+          <circle cx="380" cy="170" r="16" fill="#fff" />
+        </svg>
+        <div className="hero-inner">
+          <div className="hero-eyebrow">Specialty Coffee · Drinks · Snacks</div>
+          <h1>Great Coffee, <span>Great Company.</span></h1>
+          <p>Hand-crafted specialty coffee, ice-cold soft drinks and fresh-baked
+             snacks — made fresh and ready to order.</p>
+          <div className="hero-ctas">
+            <a href="#/menu"><button className="btn-primary">View Full Menu</button></a>
+            <a href="#/menu?category=snacks"><button className="btn-outline">Browse Snacks</button></a>
+          </div>
+        </div>
+      </div>
+      <div className="perks">
+        <div className="perk"><span className="perk-icon">☕</span>Specialty-grade beans, roasted weekly</div>
+        <div className="perk"><span className="perk-icon">🥤</span>Ice-cold soft drinks, made fresh</div>
+        <div className="perk"><span className="perk-icon">🥨</span>Fresh-baked snacks, daily</div>
+        <div className="perk"><span className="perk-icon">💚</span>100% satisfaction guarantee</div>
+      </div>
+      <div className="section">
+        <h2 className="section-title">Featured Right Now</h2>
+        <p className="section-sub">A taste of what's on the menu today.</p>
+        <MenuPreview />
+      </div>
+    </>
+  );
+}
+
+function MenuPreview() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    apiFetch("/menu").then((d) => setItems(d.items.slice(0, 4))).finally(() => setLoading(false));
+  }, []);
+  if (loading) return <p className="hint">Loading menu…</p>;
+  return (
+    <div className="grid">
+      {items.map((item) => (
+        <div className="card" key={item.id}>
+          <ProductArt art={item.art} />
+          <div className="card-body">
+            <span className={"card-tag " + item.category}>
+              {item.category === "coffee" ? "Coffee" : item.category === "drinks" ? "Drink" : "Snack"}
+            </span>
+            <h3>{item.name}</h3>
+            <p className="desc">{item.description}</p>
+            <div className="card-footer">
+              <span className="price">${item.price.toFixed(2)}</span>
+              <a href="#/menu"><button className="add-btn">View menu</button></a>
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------
+   Menu page (with category tabs, quantity stepper, add-to-cart)
+--------------------------------------------------------------------- */
+function ProductCard({ item, onAdd }) {
+  const [qty, setQty] = useState(1);
+  const [added, setAdded] = useState(false);
+
+  const handleAdd = () => {
+    onAdd(item, qty);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1200);
+  };
+
+  const categoryLabel = item.category === "coffee" ? "Coffee" : item.category === "drinks" ? "Drink" : "Snack";
+
+  return (
+    <div className="card">
+      <ProductArt art={item.art} />
+      <div className="card-body">
+        <span className={"card-tag " + item.category}>{categoryLabel}</span>
+        <h3>{item.name}</h3>
+        <p className="desc">{item.description}</p>
+        <div className="card-footer">
+          <span className="price">${item.price.toFixed(2)}</span>
+          <div className="qty-control">
+            <button onClick={() => setQty((q) => Math.max(1, q - 1))} aria-label="Decrease quantity">−</button>
+            <span>{qty}</span>
+            <button onClick={() => setQty((q) => Math.min(20, q + 1))} aria-label="Increase quantity">+</button>
+          </div>
+        </div>
+        <button className={"add-btn" + (added ? " added" : "")} onClick={handleAdd}>
+          {added ? "Added ✓" : "Add to Cart"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MenuPage({ onAdd }) {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const params = new URLSearchParams((window.location.hash.split("?")[1] || ""));
+  const initial = ["coffee", "drinks", "snacks"].includes(params.get("category")) ? params.get("category") : "all";
+  const [tab, setTab] = useState(initial);
+
+  useEffect(() => {
+    setLoading(true);
+    apiFetch("/menu")
+      .then((d) => setItems(d.items))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = items.filter((i) => tab === "all" || i.category === tab);
+
+  return (
+    <div className="section">
+      <h2 className="section-title">Our Menu</h2>
+      <p className="section-sub">Specialty coffee, soft drinks and snacks, made fresh to order.</p>
+      <div className="tabs">
+        <button className={"tab" + (tab === "all" ? " active" : "")} onClick={() => setTab("all")}>All</button>
+        <button className={"tab" + (tab === "coffee" ? " active" : "")} onClick={() => setTab("coffee")}>Coffee</button>
+        <button className={"tab orange" + (tab === "drinks" ? " active" : "")} onClick={() => setTab("drinks")}>Drinks</button>
+        <button className={"tab green" + (tab === "snacks" ? " active" : "")} onClick={() => setTab("snacks")}>Snacks</button>
+      </div>
+      {loading && <p className="hint">Loading menu…</p>}
+      {error && <div className="error-msg">{error}</div>}
+      {!loading && !error && (
+        <div className="grid">
+          {filtered.map((item) => <ProductCard key={item.id} item={item} onAdd={onAdd} />)}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------
+   Cart drawer + checkout
+--------------------------------------------------------------------- */
+function CartDrawer({ cart, onClose, onRemove, onQtyChange, onCheckout }) {
+  const total = cart.reduce((sum, c) => sum + c.price * c.quantity, 0);
+  return (
+    <>
+      <div className="overlay" onClick={onClose}></div>
+      <div className="drawer">
+        <div className="drawer-header">
+          <h3 style={{ margin: 0 }}>Your Cart</h3>
+          <button className="close-btn" onClick={onClose}>✕</button>
+        </div>
+        <div className="drawer-body">
+          {cart.length === 0 && <div className="empty-state">Your cart is empty. Go add something tasty!</div>}
+          {cart.map((item) => (
+            <div className="drawer-item" key={item.id}>
+              <ProductArt art={item.art} small />
+              <div className="drawer-item-info">
+                <h4>{item.name}</h4>
+                <div className="qty-control">
+                  <button onClick={() => onQtyChange(item.id, Math.max(1, item.quantity - 1))}>−</button>
+                  <span>{item.quantity}</span>
+                  <button onClick={() => onQtyChange(item.id, item.quantity + 1)}>+</button>
+                </div>
+                <span style={{ fontSize: 13, color: "var(--muted)" }}>${item.price.toFixed(2)} each</span>
+              </div>
+              <button className="remove-link" onClick={() => onRemove(item.id)}>Remove</button>
+            </div>
+          ))}
+        </div>
+        <div className="drawer-footer">
+          <div className="drawer-total"><span>Total</span><span>${total.toFixed(2)}</span></div>
+          <button className="full-btn" disabled={cart.length === 0} onClick={onCheckout}>
+            Proceed to Checkout
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function CheckoutPage({ cart, setCart }) {
+  const [name, setName] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [orderResult, setOrderResult] = useState(null);
+  const total = cart.reduce((sum, c) => sum + c.price * c.quantity, 0);
+
+  const placeOrder = async (e) => {
+    e.preventDefault();
+    setError("");
+    if (!name.trim()) { setError("Please enter your name."); return; }
+    if (cart.length === 0) { setError("Your cart is empty."); return; }
+    setSubmitting(true);
+    try {
+      const payload = {
+        customerName: name.trim(),
+        items: cart.map((c) => ({ id: c.id, quantity: c.quantity })),
+      };
+      const data = await apiFetch("/orders", { method: "POST", body: JSON.stringify(payload) });
+      setOrderResult(data.order);
+      setCart([]);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (orderResult) {
+    return (
+      <div className="form-page">
+        <div className="success-msg">Order placed! Thank you, {orderResult.customerName}.</div>
+        <h2>Order Confirmation</h2>
+        <p className="hint">Order ID: {orderResult.id}</p>
+        <ul>
+          {orderResult.items.map((it) => (
+            <li key={it.id}>{it.quantity} × {it.name} — ${it.lineTotal.toFixed(2)}</li>
+          ))}
+        </ul>
+        <div className="drawer-total"><span>Total</span><span>${orderResult.total.toFixed(2)}</span></div>
+        <a href="#/menu"><button className="full-btn" style={{ marginTop: 16 }}>Back to Menu</button></a>
+      </div>
+    );
+  }
+
+  return (
+    <div className="form-page">
+      <h2>Checkout</h2>
+      {error && <div className="error-msg">{error}</div>}
+      {cart.length === 0 ? (
+        <div className="empty-state">
+          Your cart is empty. <a href="#/menu" style={{ color: "var(--bloom-green)", fontWeight: 700 }}>Browse the menu →</a>
+        </div>
+      ) : (
+        <form onSubmit={placeOrder}>
+          <div className="field">
+            <label>Full name</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Priya Sharma" />
+          </div>
+          <ul style={{ paddingLeft: 18, fontSize: 14, color: "var(--muted)" }}>
+            {cart.map((c) => <li key={c.id}>{c.quantity} × {c.name} — ${(c.price * c.quantity).toFixed(2)}</li>)}
+          </ul>
+          <div className="drawer-total"><span>Total</span><span>${total.toFixed(2)}</span></div>
+          <button className="full-btn" type="submit" disabled={submitting}>
+            {submitting ? "Placing order…" : "Place Order"}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------
+   Admin login + dashboard
+--------------------------------------------------------------------- */
+function AdminLogin({ onLoggedIn }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setSubmitting(true);
+    try {
+      const data = await apiFetch("/login", { method: "POST", body: JSON.stringify({ username, password }) });
+      onLoggedIn(data.token);
+      navigate("#/admin");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="form-page">
+      <h2>Admin Login</h2>
+      {error && <div className="error-msg">{error}</div>}
+      <form onSubmit={submit}>
+        <div className="field">
+          <label>Username</label>
+          <input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
+        </div>
+        <div className="field">
+          <label>Password</label>
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+        </div>
+        <button className="full-btn" type="submit" disabled={submitting}>
+          {submitting ? "Signing in…" : "Sign In"}
+        </button>
+      </form>
+      <p className="hint">Demo credentials: admin / admin123 (change these via environment variables in production).</p>
+    </div>
+  );
+}
+
+function AdminDashboard({ token, onLogout }) {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    apiFetch("/admin/orders", { headers: { Authorization: "Bearer " + token } })
+      .then((d) => setOrders(d.orders))
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
+  }, [token]);
+
+  return (
+    <div className="section">
+      <div className="admin-bar">
+        <div>
+          <h2 className="section-title" style={{ marginBottom: 2 }}>Admin Dashboard</h2>
+          <p className="section-sub" style={{ marginBottom: 0 }}>All orders placed on Bean &amp; Bloom.</p>
+        </div>
+        <button className="logout-btn" onClick={onLogout}>Log Out</button>
+      </div>
+      {loading && <p className="hint">Loading orders…</p>}
+      {error && <div className="error-msg">{error}</div>}
+      {!loading && !error && (
+        orders.length === 0 ? (
+          <div className="empty-state">No orders yet.</div>
+        ) : (
+          <table className="orders">
+            <thead>
+              <tr><th>Order ID</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th></tr>
+            </thead>
+            <tbody>
+              {orders.map((o) => (
+                <tr key={o.id}>
+                  <td>{o.id.slice(0, 8)}…</td>
+                  <td>{o.customerName}</td>
+                  <td>{o.items.map((it) => `${it.quantity}×${it.name}`).join(", ")}</td>
+                  <td>${o.total.toFixed(2)}</td>
+                  <td><span className="status-pill">{o.status}</span></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )
+      )}
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------
+   Static pages
+--------------------------------------------------------------------- */
+function About() {
+  return (
+    <div className="section">
+      <h2 className="section-title">About Bean &amp; Bloom</h2>
+      <p className="section-sub">
+        Bean &amp; Bloom pairs specialty-grade coffee with ice-cold soft drinks and
+        fresh-baked snacks. Our beans are roasted weekly, our drinks are always cold,
+        and every item on the menu is made to order.
+      </p>
+    </div>
+  );
+}
+
+function Contact() {
+  return (
+    <div className="section">
+      <h2 className="section-title">Contact Us</h2>
+      <p className="section-sub">We'd love to hear from you.</p>
+      <p>📍 12 Market Street, Wellness Square</p>
+      <p>✉️ hello@beanandbloom.example</p>
+      <p>📞 (555) 010-0199</p>
+    </div>
+  );
+}
+
+function NotFound() {
+  return (
+    <div className="not-found">
+      <div className="code">404</div>
+      <h2>This page has wandered off.</h2>
+      <p>The page you're looking for doesn't exist — maybe it stepped out for coffee.</p>
+      <a href="#/"><button className="btn-primary" style={{ background: "var(--coffee)" }}>Back to Home</button></a>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------------
+   Root app + client-side routing
+--------------------------------------------------------------------- */
+function App() {
+  const route = useHashRoute();
+  const baseRoute = "#/" + (route.split("?")[0].replace(/^#\//, ""));
+  const [cart, setCart] = useState([]);
+  const [cartOpen, setCartOpen] = useState(false);
+  const [token, setToken] = useState(() => sessionStorage.getItem("bb_admin_token") || "");
+
+  const addToCart = useCallback((item, qty) => {
+    setCart((prev) => {
+      const existing = prev.find((c) => c.id === item.id);
+      if (existing) {
+        return prev.map((c) => (c.id === item.id ? { ...c, quantity: c.quantity + qty } : c));
+      }
+      return [...prev, { ...item, quantity: qty }];
+    });
+    setCartOpen(true);
+  }, []);
+
+  const removeFromCart = (id) => setCart((prev) => prev.filter((c) => c.id !== id));
+  const changeQty = (id, qty) => setCart((prev) => prev.map((c) => (c.id === id ? { ...c, quantity: qty } : c)));
+  const cartCount = cart.reduce((n, c) => n + c.quantity, 0);
+
+  const handleLoggedIn = (tok) => {
+    sessionStorage.setItem("bb_admin_token", tok);
+    setToken(tok);
+  };
+  const handleLogout = () => {
+    sessionStorage.removeItem("bb_admin_token");
+    setToken("");
+    navigate("#/");
+  };
+
+  const KNOWN = ["#/", "#/menu", "#/about", "#/contact", "#/login", "#/admin", "#/checkout"];
+  let page;
+  if (baseRoute === "#/") page = <Home />;
+  else if (baseRoute === "#/menu") page = <MenuPage onAdd={addToCart} />;
+  else if (baseRoute === "#/about") page = <About />;
+  else if (baseRoute === "#/contact") page = <Contact />;
+  else if (baseRoute === "#/checkout") page = <CheckoutPage cart={cart} setCart={setCart} />;
+  else if (baseRoute === "#/login") page = token ? <AdminDashboard token={token} onLogout={handleLogout} /> : <AdminLogin onLoggedIn={handleLoggedIn} />;
+  else if (baseRoute === "#/admin") page = token ? <AdminDashboard token={token} onLogout={handleLogout} /> : <AdminLogin onLoggedIn={handleLoggedIn} />;
+  else page = <NotFound />;
+
+  return (
+    <>
+      <Navbar route={baseRoute} cartCount={cartCount} onOpenCart={() => setCartOpen(true)} isAdmin={!!token} onLogout={handleLogout} />
+      {page}
+      {cartOpen && (
+        <CartDrawer
+          cart={cart}
+          onClose={() => setCartOpen(false)}
+          onRemove={removeFromCart}
+          onQtyChange={changeQty}
+          onCheckout={() => { setCartOpen(false); navigate("#/checkout"); }}
+        />
+      )}
+      <footer>© {new Date().getFullYear()} Bean &amp; Bloom. All rights reserved.</footer>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
