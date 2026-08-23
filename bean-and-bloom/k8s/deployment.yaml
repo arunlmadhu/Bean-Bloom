@@ -17,7 +17,7 @@ spec:
     spec:
       containers:
         - name: "bean-and-bloom"
-          image: "794934876309.dkr.ecr.us-west-2.amazonaws.com/tanusha-k8s-project:62aeeba76ab76609ba7dfff0281145169327652b"
+          image: "949753869464.dkr.ecr.ap-southeast-1.amazonaws.com/sample-docker:latest"
           ports:
             - containerPort: 5000
           env:
