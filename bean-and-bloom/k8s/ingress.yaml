@@ -17,7 +17,7 @@ metadata:
 spec:
   ingressClassName: "alb"
   rules:
-    - host: "beanandbloom.example.com"
+    - host: "beanandbloom.madhavi.cloud"
       http:
         paths:
           - path: "/"
