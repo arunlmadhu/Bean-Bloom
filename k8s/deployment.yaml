@@ -1,77 +1,29 @@
 apiVersion: "apps/v1"
 kind: "Deployment"
 metadata:
-  name: "bean-and-bloom"
-  namespace: "bean-and-bloom"
+  name: "bean-bloom"
+  namespace: "bean-bloom"
   labels:
-    app: "bean-and-bloom"
+    app: "bean-bloom"
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: "bean-and-bloom"
+      app: "bean-bloom"
   template:
     metadata:
       labels:
-        app: "bean-and-bloom"
+        app: "bean-bloom"
     spec:
       containers:
-        - name: "bean-and-bloom"
-          image: "949753869464.dkr.ecr.ap-southeast-1.amazonaws.com/sample-docker:latest"
+        - name: "bean-bloom"
+          image: "949753869464.dkr.ecr.ap-southeast-1.amazonaws.com/bean-bloom:72dcf1fe219287a2b542ec52b7add63ef0662ce3"
           ports:
             - containerPort: 5000
-          env:
-            - name: "PORT"
-              value: "5000"
-            - name: "SECRET_KEY"
-              valueFrom:
-                secretKeyRef:
-                  name: "bean-and-bloom-secrets"
-                  key: "secret-key"
-            - name: "ADMIN_USERNAME"
-              valueFrom:
-                secretKeyRef:
-                  name: "bean-and-bloom-secrets"
-                  key: "admin-username"
-            - name: "ADMIN_PASSWORD_HASH"
-              valueFrom:
-                secretKeyRef:
-                  name: "bean-and-bloom-secrets"
-                  key: "admin-password-hash"
           resources:
             requests:
-              memory: "128Mi"
-              cpu: "100m"
+              memory: "64Mi"
+              cpu: "250m"
             limits:
-              memory: "256Mi"
+              memory: "128Mi"
               cpu: "500m"
-          readinessProbe:
-            httpGet:
-              path: "/api/health"
-              port: 5000
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          livenessProbe:
-            httpGet:
-              path: "/api/health"
-              port: 5000
-            initialDelaySeconds: 10
-            periodSeconds: 20
-      tolerations:
-        - key: "name"
-          operator: "Equal"
-          value: "frontend_group"
-          effect: "NoSchedule"
----
-apiVersion: "v1"
-kind: "Secret"
-metadata:
-  name: "bean-and-bloom-secrets"
-  namespace: "bean-and-bloom"
-type: "Opaque"
-stringData:
-  # CHANGE THESE before deploying to any real environment.
-  secret-key: "replace-with-a-long-random-secret"
-  admin-username: "admin"
-  # werkzeug generate_password_hash() value - replace it.
-  admin-password-hash: "REPLACE_WITH_GENERATED_HASH"
